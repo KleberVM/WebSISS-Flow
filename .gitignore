@@ -1,0 +1,8 @@
+images/*
+*/libs/*
+*.class
+Archivos/*
+*.exe
+*.dll
+WebSissPython/*
+conf/*
