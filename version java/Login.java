@@ -206,12 +206,21 @@ public class Login extends JFrame {
             }
 
             try (BufferedReader br = new BufferedReader(new FileReader(archivo))) {
-                
+                //System.out.println("Archivo conf.txt encontrado. Leyendo contenido...");
                 String linea1 = br.readLine(); 
+                //System.out.println("Contenido leído (encriptado): '" + linea1 + "'");
                 BasicTextEncryptor textEncryptor;
                 textEncryptor=new BasicTextEncryptor();
                 textEncryptor.setPassword("SIA");
-                linea1=textEncryptor.decrypt(linea1).trim();
+                //System.out.println("Desencriptando contenido...");
+                try {
+                    // Intentamos desencriptar, si falla es porque el formato no es correcto
+                    linea1=textEncryptor.decrypt(linea1).trim();
+                } catch (Exception e) {
+                    mostrarError("El formato del archivo conf.txt es incorrecto o la contraseña de encriptación no coincide.\nPor favor ejecuta el configurador nuevamente.");
+                    linea1 = ""; // Para evitar que el programa siga con un valor no válido
+                }
+                //System.out.println("Contenido desencriptado: '" + linea1 + "'");
                 if (linea1 != null && linea1.trim().equals(sisInput)) {
                     return true;
                 } else {
