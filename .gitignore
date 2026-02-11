@@ -6,3 +6,5 @@ Archivos/*
 *.dll
 WebSissPython/*
 conf/*
+version python/*.env
+version python/.env

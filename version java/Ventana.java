@@ -58,6 +58,8 @@ import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import org.jasypt.exceptions.EncryptionOperationNotPossibleException;
 import org.jasypt.util.text.BasicTextEncryptor;
+
+
 import oshi.SystemInfo;
 import oshi.hardware.ComputerSystem;
 import oshi.hardware.HWDiskStore;
@@ -220,9 +222,13 @@ extends JFrame {
     private JTextField jTextFieldPractica7;
     private JTextField jTextFieldPractica8;
     private JTextField jTextFieldPractica9;
+    private String siscodgallo;
 
-    public Ventana() {
+    public Ventana(String siscodgallo) {
         int i;
+        this.siscodgallo = siscodgallo;
+        System.out.println("este es codi sis: "+ siscodgallo);
+
         this.textEncryptor.setPassword("SIA");
         JDialog loadingDialog = new JDialog((Frame)null, "CARGANDO...", true);
         loadingDialog.setSize(300, 100);
@@ -474,6 +480,7 @@ extends JFrame {
                 }
             }
         });
+        
     }
 
     public boolean agregarCadena(String cadena) {
@@ -722,7 +729,8 @@ extends JFrame {
         }
         String serialNew = datos.get(23) + "AIS";
         if (serialNew.equals(this.serialNumber + "AIS")) {
-            sis = this.desencriptarCadena(datos.get(0));
+            sis= this.siscodgallo;
+            //is = this.desencriptarCadena(datos.get(0));
             datos.set(0, sis);
             mat = this.desencriptarCadena(datos.get(22));
             datos.set(22, mat);
@@ -754,18 +762,23 @@ extends JFrame {
             if (sn.equals("SERIAL")) {
                 this.escribirDatos(false);
                 this.cargarDatos();
-                sis = this.desencriptarCadena(datos.get(0));
+                sis =this.siscodgallo;
+                //sis = this.desencriptarCadena(datos.get(0));
                 datos.set(0, sis);
                 pas = this.desencriptarCadena(datos.get(1));
                 datos.set(1, pas);
                 mat = this.desencriptarCadena(datos.get(22));
-                datos.set(22, mat);
+                datos.set(22, mat);//datos.get(0)
+                System.out.println("este es codi sis: "+ this.siscodgallo);
                 this.jPasswordFieldSis.setText(datos.get(0));
                 this.jPasswordFieldPass.setText(datos.get(1));
-                this.jPasswordFieldSis.setEnabled(true);
+                this.jPasswordFieldSis.setEnabled(false);
             } else if (sn.equals(this.serialNumber)) {
-                sis = this.desencriptarCadena(datos.get(0));
+                sis =this.siscodgallo;
+                //sis = this.desencriptarCadena(datos.get(0));
                 datos.set(0, sis);
+
+                System.out.println("Serial desencriptado: " + sis);
                 if (sis.isEmpty()) {
                     this.jPasswordFieldSis.setEnabled(true);
                 } else {
@@ -878,7 +891,17 @@ extends JFrame {
         String grupo6 = this.jTextFieldPractica6.getText().trim().isEmpty() ? this.jTextFieldDocente6.getText().trim().toUpperCase() : this.jTextFieldDocente6.getText().trim().toUpperCase() + "," + this.jTextFieldPractica6.getText().trim().toUpperCase();
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(nombreArchivo));){
             String[] nuevosDatos;
-            for (String linea : nuevosDatos = new String[]{this.textEncryptor.encrypt(this.jPasswordFieldSis.getText().trim()), this.textEncryptor.encrypt(this.jPasswordFieldPass.getText().trim()), (String)this.jComboBoxDia.getSelectedItem(), (String)this.jComboBoxMes.getSelectedItem(), (String)this.jComboBoxAnio.getSelectedItem(), this.jTextFieldCod1.getText().trim().toUpperCase(), this.jTextFieldCod2.getText().trim().toUpperCase(), this.jTextFieldCod3.getText().trim().toUpperCase(), this.jTextFieldCod4.getText().trim().toUpperCase(), this.jTextFieldCod5.getText().trim().toUpperCase(), ((String)this.jTextFieldMateria1.getSelectedItem()).trim().toUpperCase() + "," + String.valueOf(this.jComboBoxCambiar1.getSelectedItem()) + "," + String.valueOf(this.jComboBoxMesa1.getSelectedItem()), grupo1, ((String)this.jTextFieldMateria2.getSelectedItem()).trim().toUpperCase() + "," + String.valueOf(this.jComboBoxCambiar2.getSelectedItem()) + "," + String.valueOf(this.jComboBoxMesa2.getSelectedItem()), grupo2, ((String)this.jTextFieldMateria3.getSelectedItem()).trim().toUpperCase() + "," + String.valueOf(this.jComboBoxCambiar3.getSelectedItem()) + "," + String.valueOf(this.jComboBoxMesa3.getSelectedItem()), grupo3, ((String)this.jTextFieldMateria4.getSelectedItem()).trim().toUpperCase() + "," + String.valueOf(this.jComboBoxCambiar4.getSelectedItem()) + "," + String.valueOf(this.jComboBoxMesa4.getSelectedItem()), grupo4, ((String)this.jTextFieldMateria5.getSelectedItem()).trim().toUpperCase() + "," + String.valueOf(this.jComboBoxCambiar5.getSelectedItem()) + "," + String.valueOf(this.jComboBoxMesa5.getSelectedItem()), grupo5, ((String)this.jTextFieldMateria6.getSelectedItem()).trim().toUpperCase() + "," + String.valueOf(this.jComboBoxCambiar6.getSelectedItem()) + "," + String.valueOf(this.jComboBoxMesa6.getSelectedItem()), grupo6, this.textEncryptor.encrypt(datos.get(22)), this.textEncryptor.encrypt(this.serialNumber)}) {
+            for (String linea : nuevosDatos = new String[]{this.textEncryptor.encrypt(this.jPasswordFieldSis.getText().trim()),
+                 this.textEncryptor.encrypt(this.jPasswordFieldPass.getText().trim()),
+                  (String)this.jComboBoxDia.getSelectedItem()
+                  , (String)this.jComboBoxMes.getSelectedItem()
+                  , (String)this.jComboBoxAnio.getSelectedItem()
+                  , this.jTextFieldCod1.getText().trim().toUpperCase()
+                  , this.jTextFieldCod2.getText().trim().toUpperCase()
+                  , this.jTextFieldCod3.getText().trim().toUpperCase()
+                  , this.jTextFieldCod4.getText().trim().toUpperCase()
+                  , this.jTextFieldCod5.getText().trim().toUpperCase()
+                  , ((String)this.jTextFieldMateria1.getSelectedItem()).trim().toUpperCase() + "," + String.valueOf(this.jComboBoxCambiar1.getSelectedItem()) + "," + String.valueOf(this.jComboBoxMesa1.getSelectedItem()), grupo1, ((String)this.jTextFieldMateria2.getSelectedItem()).trim().toUpperCase() + "," + String.valueOf(this.jComboBoxCambiar2.getSelectedItem()) + "," + String.valueOf(this.jComboBoxMesa2.getSelectedItem()), grupo2, ((String)this.jTextFieldMateria3.getSelectedItem()).trim().toUpperCase() + "," + String.valueOf(this.jComboBoxCambiar3.getSelectedItem()) + "," + String.valueOf(this.jComboBoxMesa3.getSelectedItem()), grupo3, ((String)this.jTextFieldMateria4.getSelectedItem()).trim().toUpperCase() + "," + String.valueOf(this.jComboBoxCambiar4.getSelectedItem()) + "," + String.valueOf(this.jComboBoxMesa4.getSelectedItem()), grupo4, ((String)this.jTextFieldMateria5.getSelectedItem()).trim().toUpperCase() + "," + String.valueOf(this.jComboBoxCambiar5.getSelectedItem()) + "," + String.valueOf(this.jComboBoxMesa5.getSelectedItem()), grupo5, ((String)this.jTextFieldMateria6.getSelectedItem()).trim().toUpperCase() + "," + String.valueOf(this.jComboBoxCambiar6.getSelectedItem()) + "," + String.valueOf(this.jComboBoxMesa6.getSelectedItem()), grupo6, this.textEncryptor.encrypt(datos.get(22)), this.textEncryptor.encrypt(this.serialNumber)}) {
                 bw.write(linea);
                 bw.newLine();
             }
@@ -1720,7 +1743,7 @@ extends JFrame {
             e.printStackTrace();
         }
     }
-
+/* 
     public static void main(String[] args) {
         try {
             for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
@@ -1744,7 +1767,7 @@ extends JFrame {
                 new Ventana().setVisible(true);
             }
         });
-    }
+    }*/
 
     @Override
     public void dispose() {

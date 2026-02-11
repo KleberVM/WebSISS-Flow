@@ -2,8 +2,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.sql.*;
 import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -13,35 +14,33 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileAttribute;
 import java.security.MessageDigest;
 import org.jasypt.util.text.BasicTextEncryptor;
+import org.openqa.selenium.support.Color;
+
+import java.util.Scanner;
 
 public class Login extends JFrame {
 
     private JTextField txtSis;
     private JButton btnIngresar;
 
-    // --- CONFIGURACIÓN DE SUPABASE (¡EDITAR ESTO!) ---
-    // Copia el URI de tu foto, pero asegúrate de que empiece con "jdbc:postgresql://"
-    // Ejemplo: jdbc:postgresql://db.vj...supabase.co:5432/postgres
-    private static final String DB_URL = "jdbc:postgresql://db.ahtuagpnpsmycuhtoxmj.supabase.co:5432/postgres"; 
-    private static final String DB_USER = "postgres";
-    private static final String DB_PASSWORD = "dracarysUMSS2026@";
+    // --- CONFIGURACIÓN DE LA API BACKEND ---
+    private static final String API_URL = "http://127.0.0.1:8000/usuarios/buscar/json/";
+    private static final String API_KEY = "dracarys-secret-key-2026-xYz-99"; // La que definimos en Django
 
     private String rutaConf = System.getenv("LOCALAPPDATA") + "\\Wconf\\conf.txt";
     private String rutaSand = System.getenv("LOCALAPPDATA") + "\\Sand\\sand.txt";
 
     public Login() {
-        super("Verificación SIS - WebSISS Flow");
-        setSize(400, 200);
+        super("Verificación SIS - Dracarys System");
+        setSize(400, 250);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        // Panel Principal
         JPanel panel = new JPanel();
         panel.setLayout(new GridLayout(3, 1, 10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // Componentes
         JLabel lblInstruccion = new JLabel("Ingresa tu Código SIS:", SwingConstants.CENTER);
         lblInstruccion.setFont(new Font("Arial", Font.BOLD, 14));
         
@@ -51,16 +50,12 @@ public class Login extends JFrame {
 
         btnIngresar = new JButton("VERIFICAR E INGRESAR");
         btnIngresar.setFont(new Font("Arial", Font.BOLD, 12));
-        btnIngresar.setBackground(new Color(70, 130, 180));
-        btnIngresar.setForeground(Color.WHITE);
 
-        // Acción del Botón
-        btnIngresar.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                verificarAcceso();
-            }
-        });
+        // Forzamos el uso de java.awt.Color
+        btnIngresar.setBackground(new java.awt.Color(180, 40, 40)); 
+        btnIngresar.setForeground(java.awt.Color.WHITE);
+
+        btnIngresar.addActionListener(e -> verificarAcceso());
 
         panel.add(lblInstruccion);
         panel.add(txtSis);
@@ -78,48 +73,61 @@ public class Login extends JFrame {
         }
 
         btnIngresar.setEnabled(false);
-        btnIngresar.setText("Verificando...");
+        btnIngresar.setText("Conectando con Backend...");
 
-        // Usamos un hilo aparte para no congelar la ventana mientras conecta a internet
         new Thread(() -> {
             try {
-                // 1. CONEXIÓN A SUPABASE
-                // Nota: Supabase requiere SSL, el driver lo maneja si la URL es correcta.
-                try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-                    
-                    String sql = "SELECT enabled FROM \"Usuarios\" WHERE sis = ?";
-                    PreparedStatement pstmt = conn.prepareStatement(sql);
-                    pstmt.setString(1, sisInput);
-                    
-                    ResultSet rs = pstmt.executeQuery();
+                // 1. PETICIÓN HTTP A LA API
+                URL url = new URL(API_URL);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setRequestProperty("X-API-KEY", API_KEY); // Seguridad
+                conn.setDoOutput(true);
 
-                    if (rs.next()) {
-                        // --- CASO 1: EL USUARIO EXISTE ---
-                        boolean isEnabled = rs.getBoolean("enabled");
+                // Enviar el JSON {"sis": "valor"}
+                String jsonInputString = "{\"sis\": \"" + sisInput + "\"}";
+                try (OutputStream os = conn.getOutputStream()) {
+                    byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
+                    os.write(input, 0, input.length);
+                }
+                System.out.println("Solicitud enviada al backend.");
+                int code = conn.getResponseCode();
+                
+                if (code == 200) {
+                    // Leer respuesta
+                    String response = leerRespuesta(conn.getInputStream());
+                    response = response.replace(" ", "").replace("\n", "").replace("\r", "");
+                    // Verificamos si existe y está habilitado (Parseo manual simple)
+                    if (response.contains("\"exists\":true") && response.contains("\"enabled\":true")) {
 
-                        if (isEnabled) {
-                            // --- CASO 2: ESTÁ HABILITADO (ENABLED = TRUE) ---
-                            // Ahora verificamos el archivo local conf.txt
+                        if(response.contains("\"nrointentos\":0")){
+                            int nroDeApi = extraerValorInt(response, "nromaterias");
+                            configurarSistemaNuevoUsuario(sisInput, nroDeApi); 
+                            abrirProgramaPrincipal();
+                        }else{
                             if (verificarArchivoLocal(sisInput)) {
-                                // --- FINAL: TODO CORRECTO ---
                                 abrirProgramaPrincipal();
                             } else {
-                                mostrarError("El código SIS no coincide con la configuración local (conf.txt).\nPor favor ejecuta el configurador nuevamente.");
+                                mostrarError("Archivos de configuración locales corruptos.");
                             }
-                        } else {
-                            // --- CASO 3: CUENTA BLOQUEADA (ENABLED = FALSE) ---
-                            mostrarError("Tu cuenta está bloqueada.\nAcceso denegado.");
                         }
-
+                    } else if (response.contains("\"enabled\":false")) {
+                        mostrarError("Tu cuenta está bloqueada en el sistema.");
                     } else {
-                        // --- CASO 4: NO EXISTE EN SUPABASE ---
-                        mostrarError("Usuario no encontrado.\nContacte con el administrador.");
+                        mostrarError("Acceso denegado o usuario no configurado.");
                     }
+                } else if (code == 404) {
+                    mostrarError("Usuario no encontrado en la base de datos central.");
+                } else if (code == 403 || code == 401) {
+                    mostrarError("Error de autenticación con la API (Key inválida).");
+                } else {
+                    mostrarError("Error del servidor: " + code);
                 }
 
-            } catch (SQLException ex) {
+            } catch (Exception ex) {
                 ex.printStackTrace();
-                mostrarError("Error de conexión con la base de datos:\n" + ex.getMessage());
+                mostrarError("No se pudo conectar con el Backend.\n¿Está encendido el servidor Django?");
             } finally {
                 SwingUtilities.invokeLater(() -> {
                     btnIngresar.setEnabled(true);
@@ -129,10 +137,18 @@ public class Login extends JFrame {
         }).start();
     }
 
+    // Método auxiliar para leer el flujo de entrada
+    private String leerRespuesta(InputStream is) {
+        Scanner s = new Scanner(is).useDelimiter("\\A");
+        return s.hasNext() ? s.next() : "";
+    }
+
+    // --- MÉTODOS DE INTEGRIDAD (SE MANTIENEN IGUAL) ---
+
     public String calcularHash() {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] archivoBytes = Files.readAllBytes(Paths.get(this.rutaConf, new String[0]));
+            byte[] archivoBytes = Files.readAllBytes(Paths.get(this.rutaConf));
             byte[] hashBytes = digest.digest(archivoBytes);
             String hashContenido = bytesToHex(hashBytes);
             File file = new File(this.rutaConf);
@@ -140,7 +156,7 @@ public class Login extends JFrame {
             String hashModificacion = bytesToHex(digest.digest(String.valueOf(lastModified).getBytes(StandardCharsets.UTF_8)));
             return hashContenido + ":" + hashModificacion;
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Error, licencia no encontrada", "Error lost lic", 0);
+            JOptionPane.showMessageDialog(null, "Licencia no encontrada", "Error", 0);
             System.exit(0);
             return null;
         }
@@ -153,24 +169,15 @@ public class Login extends JFrame {
                 return null;
             }
             return new String(Files.readAllBytes(archivoHash.toPath()), StandardCharsets.UTF_8).trim();
-        } catch (Exception e) {
-            return null;
-        }
+        } catch (Exception e) { return null; }
     }
-
 
     public void guardarHash(String hash) {
         try {
-            Path rutaArchivo = Paths.get(this.rutaSand, new String[0]);
-            Path rutaCarpeta = rutaArchivo.getParent();
-            if (!Files.exists(rutaCarpeta, new LinkOption[0])) {
-                Files.createDirectories(rutaCarpeta, new FileAttribute[0]);
-            }
-            Files.write(rutaArchivo, hash.getBytes(StandardCharsets.UTF_8), new OpenOption[0]);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Error, escritura denegada", "Error save hash", 0);
-            System.exit(0);
-        }
+            Path rutaArchivo = Paths.get(this.rutaSand);
+            if (!Files.exists(rutaArchivo.getParent())) Files.createDirectories(rutaArchivo.getParent());
+            Files.write(rutaArchivo, hash.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) { System.exit(0); }
     }
 
     public boolean verificarIntegridad() {
@@ -187,86 +194,146 @@ public class Login extends JFrame {
         StringBuilder hexString = new StringBuilder();
         for (byte b : bytes) {
             String hex = Integer.toHexString(0xFF & b);
-            if (hex.length() == 1) {
-                hexString.append('0');
-            }
+            if (hex.length() == 1) hexString.append('0');
             hexString.append(hex);
         }
         return hexString.toString();
     }
 
     private boolean verificarArchivoLocal(String sisInput) {
-        if(verificarIntegridad()){
-            System.out.println("Integridad del archivo conf.txt verificada.");
-            File archivo = new File(rutaConf);
-
-            if (!archivo.exists()) {
-                mostrarError("No se encuentra el archivo de configuración:\n" + rutaConf);
-                return false;
-            }
-
-            try (BufferedReader br = new BufferedReader(new FileReader(archivo))) {
-                //System.out.println("Archivo conf.txt encontrado. Leyendo contenido...");
-                String linea1 = br.readLine(); 
-                //System.out.println("Contenido leído (encriptado): '" + linea1 + "'");
-                BasicTextEncryptor textEncryptor;
-                textEncryptor=new BasicTextEncryptor();
-                textEncryptor.setPassword("SIA");
-                //System.out.println("Desencriptando contenido...");
-                try {
-                    // Intentamos desencriptar, si falla es porque el formato no es correcto
-                    linea1=textEncryptor.decrypt(linea1).trim();
-                } catch (Exception e) {
-                    mostrarError("El formato del archivo conf.txt es incorrecto o la contraseña de encriptación no coincide.\nPor favor ejecuta el configurador nuevamente.");
-                    linea1 = ""; // Para evitar que el programa siga con un valor no válido
-                }
-                //System.out.println("Contenido desencriptado: '" + linea1 + "'");
-                if (linea1 != null && linea1.trim().equals(sisInput)) {
-                    return true;
-                } else {
-                    if(linea1.equals("".trim())){
-                        return true;
-                    }else{
-                        System.out.println("Conflicto: Archivo dice '" + linea1 + "' vs Input '" + sisInput + "'");
-                        return false;
-                    }
-                    
-                }
-
-            } catch (IOException e) {
-                e.printStackTrace();
-                return false;
-            }
-        }else{
-            return false;
-        }
+        if (!verificarIntegridad()) return false;
         
+        File archivo = new File(rutaConf);
+        if (!archivo.exists()) return false;
+
+        try (BufferedReader br = new BufferedReader(new FileReader(archivo))) {
+            String linea1 = br.readLine(); 
+            
+            // --- VALIDACIÓN DE NULOS (EL ESCUDO) ---
+            if (linea1 == null) {
+                System.out.println("El archivo está vacío.");
+                return false;
+            }
+
+            BasicTextEncryptor textEncryptor = new BasicTextEncryptor();
+            textEncryptor.setPassword("SIA");
+
+            try {
+                // Intentamos desencriptar
+                String desencriptado = textEncryptor.decrypt(linea1);
+                
+                if (desencriptado == null) return false;
+                
+                linea1 = desencriptado.trim();
+            } catch (Exception e) { 
+                // Si falla la desencriptación, verificamos si al menos no era nulo antes de hacer trim
+                if (linea1 != null && linea1.trim().equals("")) {
+                    return true;
+                }
+                return false;
+            }
+        
+            return linea1.equals(sisInput) || linea1.isEmpty();
+
+        } catch (IOException e) { 
+            System.out.println("Error al leer el archivo: " + e.getMessage());
+            return false; 
+        }
     }
 
     private void abrirProgramaPrincipal() {
         SwingUtilities.invokeLater(() -> {
-            this.dispose(); // Cierra la ventana de Login
-            
-            // Instancia y muestra la ventana principal
-            // Asegúrate de que tu clase Ventana tenga un constructor visible o método main
+            this.dispose();
             try {
-                new Ventana().setVisible(true); 
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(null, "Error al abrir Ventana.java: " + e.getMessage());
-                e.printStackTrace();
+                new Ventana("202103154").setVisible(true);
+                //ventana.setVisible(true);
+        
+            } catch (Exception e) { 
+                JOptionPane.showMessageDialog(null, "Error al abrir el programa principal ", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
     }
 
     private void mostrarError(String mensaje) {
-        SwingUtilities.invokeLater(() -> {
-            JOptionPane.showMessageDialog(this, mensaje, "Acceso Denegado", JOptionPane.ERROR_MESSAGE);
-        });
+        SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this, mensaje, "Acceso Denegado", JOptionPane.ERROR_MESSAGE));
+    }
+
+
+    private void configurarSistemaNuevoUsuario(String sis, int nroMateriasBackend) {
+        try {
+            System.out.println("--- Configurando archivos para SIS: " + sis + " ---");
+            
+            Path pSand = Paths.get(rutaSand);
+            Path pConf = Paths.get(rutaConf);
+            
+            // 1. Limpieza inicial
+            Files.deleteIfExists(pSand);
+            
+            // 2. Asegurar que existan las carpetas
+            if (!Files.exists(pConf.getParent())) {
+                Files.createDirectories(pConf.getParent());
+            }
+
+            // 3. Construir el archivo conf.txt (22 líneas + nro + pass)
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 22; i++) {
+                sb.append("\n");
+            }
+            
+            // Escribimos el número que definió el Admin en el Backend
+            sb.append(nroMateriasBackend).append("\n");
+            
+            // Contraseña hardcoded según tu script de Python
+            sb.append("vtvrEAFtCQLGH0mq3YzkCQ==");
+
+            Files.write(pConf, sb.toString().getBytes(StandardCharsets.UTF_8));
+            
+            // 4. Notificar al Backend que el usuario ya realizó su primera configuración
+            notificarPrimerIntentoExitoso(sis);
+            
+            System.out.println("Configuración automática completada exitosamente.");
+            
+        } catch (Exception e) {
+            mostrarError("Error crítico en configuración inicial: " + e.getMessage());
+        }
+    }
+
+    private void notificarPrimerIntentoExitoso(String sis) {
+        try {
+            URL url = new URL("http://127.0.0.1:8000/usuarios/incrementar/");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("X-API-KEY", API_KEY);
+            conn.setDoOutput(true);
+            
+            String json = "{\"sis\": \"" + sis + "\"}";
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(json.getBytes(StandardCharsets.UTF_8));
+            }
+            conn.getResponseCode(); // Disparamos la petición
+        } catch (Exception e) { e.printStackTrace(); }
+    }
+
+    private int extraerValorInt(String response, String llave) {
+        try {
+            // Buscamos algo como "nromaterias":4
+            String pattern = "\"" + llave + "\":";
+            int inicio = response.indexOf(pattern) + pattern.length();
+            int fin = response.indexOf(",", inicio);
+            
+            // Si es el último elemento del objeto JSON
+            if (fin == -1) {
+                fin = response.indexOf("}", inicio);
+            }
+            
+            return Integer.parseInt(response.substring(inicio, fin).trim());
+        } catch (Exception e) {
+            return 3; // Valor por defecto por seguridad
+        }
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            new Login().setVisible(true);
-        });
+        SwingUtilities.invokeLater(() -> new Login().setVisible(true));
     }
 }
