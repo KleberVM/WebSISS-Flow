@@ -795,10 +795,6 @@ extends JFrame {
             JOptionPane.showMessageDialog(null, "Error, archivo corrupto", "SN change or delete", 0);
             System.exit(0);
         }
-        if (datos.get(0).equals("202103580")) {
-            JOptionPane.showMessageDialog(null, "Error, no se puede ejecutar el programa", "Error block", 0);
-            System.exit(0);
-        }
         switch (datos.get(22)) {
             case "1": {
                 this.jPanelM2.setVisible(false);

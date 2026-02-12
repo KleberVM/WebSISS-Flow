@@ -93,7 +93,7 @@ public class Login extends JFrame {
                 }
                 //System.out.println("Solicitud enviada al backend.");
                 int code = conn.getResponseCode();
-                
+
                 if (code == 200) {
                     // Leer respuesta
                     String response = leerRespuesta(conn.getInputStream());
@@ -104,10 +104,10 @@ public class Login extends JFrame {
                         if(response.contains("\"nrointentos\":0")){
                             int nroDeApi = extraerValorInt(response, "nromaterias");
                             configurarSistemaNuevoUsuario(sisInput, nroDeApi); 
-                            abrirProgramaPrincipal();
+                            abrirProgramaPrincipal(sisInput);
                         }else{
                             if (verificarArchivoLocal(sisInput)) {
-                                abrirProgramaPrincipal();
+                                abrirProgramaPrincipal(sisInput);
                             } else {
                                 mostrarError("Archivos de configuración locales corruptos.");
                             }
@@ -241,13 +241,12 @@ public class Login extends JFrame {
         }
     }
 
-    private void abrirProgramaPrincipal() {
+    private void abrirProgramaPrincipal(String sisCadena) {
         SwingUtilities.invokeLater(() -> {
             this.dispose();
             try {
-                new Ventana("202103154").setVisible(true);
+                new Ventana(sisCadena).setVisible(true);
                 //ventana.setVisible(true);
-        
             } catch (Exception e) { 
                 JOptionPane.showMessageDialog(null, "Error al abrir el programa principal ", "Error", JOptionPane.ERROR_MESSAGE);
             }
