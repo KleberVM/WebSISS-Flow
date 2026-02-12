@@ -1,6 +1,3 @@
-/*
- * Decompiled with CFR 0.153-SNAPSHOT (d6f6758-dirty).
- */
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -227,7 +224,7 @@ extends JFrame {
     public Ventana(String siscodgallo) {
         int i;
         this.siscodgallo = siscodgallo;
-        System.out.println("este es codi sis: "+ siscodgallo);
+        //System.out.println("este es codi sis: "+ siscodgallo);
 
         this.textEncryptor.setPassword("SIA");
         JDialog loadingDialog = new JDialog((Frame)null, "CARGANDO...", true);
@@ -769,7 +766,7 @@ extends JFrame {
                 datos.set(1, pas);
                 mat = this.desencriptarCadena(datos.get(22));
                 datos.set(22, mat);//datos.get(0)
-                System.out.println("este es codi sis: "+ this.siscodgallo);
+                //System.out.println("este es codi sis: "+ this.siscodgallo);
                 this.jPasswordFieldSis.setText(datos.get(0));
                 this.jPasswordFieldPass.setText(datos.get(1));
                 this.jPasswordFieldSis.setEnabled(false);
@@ -778,7 +775,7 @@ extends JFrame {
                 //sis = this.desencriptarCadena(datos.get(0));
                 datos.set(0, sis);
 
-                System.out.println("Serial desencriptado: " + sis);
+                //System.out.println("Serial desencriptado: " + sis);
                 if (sis.isEmpty()) {
                     this.jPasswordFieldSis.setEnabled(true);
                 } else {

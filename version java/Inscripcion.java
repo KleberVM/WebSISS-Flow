@@ -1,6 +1,3 @@
-/*
- * Decompiled with CFR 0.153-SNAPSHOT (d6f6758-dirty).
- */
 import java.awt.Color;
 import java.awt.Robot;
 import java.awt.Toolkit;

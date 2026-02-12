@@ -1,3 +1,4 @@
 libs/*
 *.class
 *.jar
+.vscode

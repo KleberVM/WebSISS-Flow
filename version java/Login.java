@@ -24,7 +24,7 @@ public class Login extends JFrame {
     private JButton btnIngresar;
 
     // --- CONFIGURACIÓN DE LA API BACKEND ---
-    private static final String API_URL = "http://127.0.0.1:8000/usuarios/buscar/json/";
+    private static final String API_URL = "https://dracarys.onrender.com/usuarios/buscar/json/";
     private static final String API_KEY = "dracarys-secret-key-2026-xYz-99"; // La que definimos en Django
 
     private String rutaConf = System.getenv("LOCALAPPDATA") + "\\Wconf\\conf.txt";
@@ -91,7 +91,7 @@ public class Login extends JFrame {
                     byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
                     os.write(input, 0, input.length);
                 }
-                System.out.println("Solicitud enviada al backend.");
+                //System.out.println("Solicitud enviada al backend.");
                 int code = conn.getResponseCode();
                 
                 if (code == 200) {
@@ -211,7 +211,7 @@ public class Login extends JFrame {
             
             // --- VALIDACIÓN DE NULOS (EL ESCUDO) ---
             if (linea1 == null) {
-                System.out.println("El archivo está vacío.");
+                //System.out.println("El archivo está vacío.");
                 return false;
             }
 
@@ -236,7 +236,7 @@ public class Login extends JFrame {
             return linea1.equals(sisInput) || linea1.isEmpty();
 
         } catch (IOException e) { 
-            System.out.println("Error al leer el archivo: " + e.getMessage());
+            //System.out.println("Error al leer el archivo: " + e.getMessage());
             return false; 
         }
     }
@@ -261,7 +261,7 @@ public class Login extends JFrame {
 
     private void configurarSistemaNuevoUsuario(String sis, int nroMateriasBackend) {
         try {
-            System.out.println("--- Configurando archivos para SIS: " + sis + " ---");
+            //System.out.println("--- Configurando archivos para SIS: " + sis + " ---");
             
             Path pSand = Paths.get(rutaSand);
             Path pConf = Paths.get(rutaConf);
@@ -291,7 +291,7 @@ public class Login extends JFrame {
             // 4. Notificar al Backend que el usuario ya realizó su primera configuración
             notificarPrimerIntentoExitoso(sis);
             
-            System.out.println("Configuración automática completada exitosamente.");
+            //System.out.println("Configuración automática completada exitosamente.");
             
         } catch (Exception e) {
             mostrarError("Error crítico en configuración inicial: " + e.getMessage());
@@ -300,7 +300,7 @@ public class Login extends JFrame {
 
     private void notificarPrimerIntentoExitoso(String sis) {
         try {
-            URL url = new URL("http://127.0.0.1:8000/usuarios/incrementar/");
+            URL url = new URL("https://dracarys.onrender.com/usuarios/incrementar/");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
